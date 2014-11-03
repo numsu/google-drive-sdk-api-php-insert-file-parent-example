@@ -1,4 +1,4 @@
-google-api-php-insert-file-parent-example
+google-drive-sdk-api-php-insert-file-parent-example
 =========================================
 
 Small and very simple well commented example of a server-side PHP application where you can log in and insert files to Google Drive through their API. Also about creating parent folders and instering the file there.
