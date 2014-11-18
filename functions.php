@@ -5,7 +5,7 @@ require_once "google-api-php-client/src/Google/Service/Oauth2.php";
 header('Content-Type: text/html; charset=utf-8');
 
 // Get your app info from JSON downloaded from google dev console
-$json = json_decode(file_get_contents($_SERVER["DOCUMENT_ROOT"] . "/conf/GoogleClientId.json"), true);
+$json = json_decode(file_get_contents("./conf/GoogleClientId.json"), true);
 
 $CLIENT_ID = $json['web']['client_id'];
 $CLIENT_SECRET = $json['web']['client_secret'];
@@ -73,7 +73,6 @@ function exchangeCode($authorizationCode) {
 		$client->setClientId($CLIENT_ID);
 		$client->setClientSecret($CLIENT_SECRET);
 		$client->setRedirectUri($REDIRECT_URI);
-		$_GET['code'] = $authorizationCode;
 		return $client->authenticate($authorizationCode);
 	} catch (Exception $e) {
 		print 'An error occurred: ' . $e->getMessage();
@@ -99,13 +98,11 @@ function exchangeCode($authorizationCode) {
  * @throws An error occurred. And prints the error message
  */
 function getCredentials($authorizationCode, $state) {
-	$emailAddress = '';
 	try {
 		$credentials = exchangeCode($authorizationCode);
 		
 		// Get the user data
 		$userInfo = getUserInfo($credentials);
-		$emailAddress = $userInfo->getEmail();
 		$userId = $userInfo->getId();
 		$credentialsArray = json_decode($credentials, true);
 		if (isset($credentialsArray['refresh_token'])) {
@@ -134,13 +131,15 @@ function getUserInfo($credentials) {
 	$userInfoService = new Google_Service_Oauth2($apiClient);
 	try {
 		$userInfo = $userInfoService->userinfo->get();
+
+		if ($userInfo != null && $userInfo->getId() != null) {
+			return $userInfo;
+		} else {
+			echo "No user ID";
+		}
 	} catch (Exception $e) {
 		print 'An error occurred: ' . $e->getMessage();
 	}
-	if ($userInfo != null && $userInfo->getId() != null) {
-		return $userInfo;
-	} else {
-		echo "No user ID";
-	}
+	
 }
 ?>
