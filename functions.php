@@ -44,8 +44,8 @@ function getAuthorizationUrl($emailAddress, $state) {
 
 	$client->setClientId($CLIENT_ID);
 	$client->setRedirectUri($REDIRECT_URI);
-	$client->setAccessType('offline');
-	$client->setApprovalPrompt('force');
+	$client->setAccessType('online');
+	$client->setApprovalPrompt('auto');
 	$client->setState($state);
 	$client->setScopes($SCOPES);
 	$tmpUrl = parse_url($client->createAuthUrl());
@@ -98,24 +98,39 @@ function exchangeCode($authorizationCode) {
  * @throws An error occurred. And prints the error message
  */
 function getCredentials($authorizationCode, $state) {
+	$emailAddress = '';
 	try {
 		$credentials = exchangeCode($authorizationCode);
-		
-		// Get the user data
 		$userInfo = getUserInfo($credentials);
+		$emailAddress = $userInfo->getEmail();
 		$userId = $userInfo->getId();
 		$credentialsArray = json_decode($credentials, true);
 		if (isset($credentialsArray['refresh_token'])) {
-			
-			// Save the user data
 			storeCredentials($userId, $credentials, $userInfo);
 			return $credentials;
+		} else {
+			$credentials = getStoredCredentials($userId);
+			$credentialsArray = json_decode($credentials, true);
+			if ($credentials != null &&
+				isset($credentialsArray['refresh_token'])) {
+				storeCredentials($userId, $credentials, $userInfo);
+				return $credentials;
+			}
 		}
-	} catch (Exception $e) {
-		print 'An error occurred during code exchange. ' . $e->getMessage();
-	} catch (Exception $e) {
-		print 'No e-mail address could be retrieved.' . $e->getMessage();
 	}
+} catch (CodeExchangeException $e) {
+	print 'An error occurred during code exchange.';
+	// Drive apps should try to retrieve the user and credentials for the current
+	// session.
+	// If none is available, redirect the user to the authorization URL.
+	$e->setAuthorizationUrl(getAuthorizationUrl($emailAddress, $state));
+	throw $e;
+} catch (NoUserIdException $e) {
+	print 'No e-mail address could be retrieved.';
+}
+  // No refresh token has been retrieved.
+$authorizationUrl = getAuthorizationUrl($emailAddress, $state);
+throw new NoRefreshTokenException($authorizationUrl);
 }
 
 /**
