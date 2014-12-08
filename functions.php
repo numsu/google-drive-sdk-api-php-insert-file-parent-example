@@ -25,11 +25,26 @@ $SCOPES = array(
  * @param String $userInfo Overall user data
  */
 function storeCredentials($userId, $credentials, $userInfo) {
-	$_SESSION["userId"] = $userId;
-	$_SESSION["credentials"] = $credentials;
 	$_SESSION["userInfo"] = $userInfo;
+	setcookie("userId", $userId, time() + (86400 * 30), "/");
+	setcookie("credentials", $credentials, time() + (86400 * 30), "/");
 
 	// TODO: Integrate with a database
+}
+
+/**
+ * Get OAuth 2.0 credentials from the application's database.
+ *
+ * @param String $userId User's ID.
+ * @return JSON $credentials if the user has logged in to the service before, else return null
+ */
+function getStoredCredentials($userId) {
+	// TODO: Integrate with a database
+	if(isset($_COOKIE["credentials"])) {
+		return $_COOKIE["credentials"];
+	}else {
+		return null;
+	}
 }
 
 /** 
@@ -44,7 +59,7 @@ function getAuthorizationUrl($emailAddress, $state) {
 
 	$client->setClientId($CLIENT_ID);
 	$client->setRedirectUri($REDIRECT_URI);
-	$client->setAccessType('online');
+	$client->setAccessType('offline');
 	$client->setApprovalPrompt('auto');
 	$client->setState($state);
 	$client->setScopes($SCOPES);
@@ -83,19 +98,9 @@ function exchangeCode($authorizationCode) {
 /**
  * Retrieve credentials using the provided authorization code.
  *
- * This function exchanges the authorization code for an access token and
- * queries the UserInfo API to retrieve the user's e-mail address. If a
- * refresh token has been retrieved along with an access token, it is stored
- * in the application database using the user's e-mail address as key. If no
- * refresh token has been retrieved, the function checks in the application
- * database for one and returns it if found or throws a NoRefreshTokenException
- * with the authorization URL to redirect the user to.
- *
- * @param String authorizationCode Authorization code to use to retrieve an access
- *                                 token.
+ * @param String authorizationCode Authorization code to use to retrieve an access token.
  * @param String state State to set to the authorization URL in case of error.
  * @return String Json representation of the OAuth 2.0 credentials.
- * @throws An error occurred. And prints the error message
  */
 function getCredentials($authorizationCode, $state) {
 	$emailAddress = '';
@@ -110,27 +115,25 @@ function getCredentials($authorizationCode, $state) {
 			return $credentials;
 		} else {
 			$credentials = getStoredCredentials($userId);
-			$credentialsArray = json_decode($credentials, true);
-			if ($credentials != null &&
-				isset($credentialsArray['refresh_token'])) {
+			if ($credentials != null && isset($credentials)) {
 				storeCredentials($userId, $credentials, $userInfo);
-				return $credentials;
-			}
+			return $credentials;
+		} else {
+			echo "Unexpected error.";die;
 		}
 	}
 } catch (CodeExchangeException $e) {
 	print 'An error occurred during code exchange.';
-	// Drive apps should try to retrieve the user and credentials for the current
-	// session.
-	// If none is available, redirect the user to the authorization URL.
+		// Drive apps should try to retrieve the user and credentials for the current
+		// session.
+		// If none is available, redirect the user to the authorization URL.
 	$e->setAuthorizationUrl(getAuthorizationUrl($emailAddress, $state));
 	throw $e;
 } catch (NoUserIdException $e) {
 	print 'No e-mail address could be retrieved.';
 }
-  // No refresh token has been retrieved.
+	// No token has been retrieved.
 $authorizationUrl = getAuthorizationUrl($emailAddress, $state);
-throw new NoRefreshTokenException($authorizationUrl);
 }
 
 /**

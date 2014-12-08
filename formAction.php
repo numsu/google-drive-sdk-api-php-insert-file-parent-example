@@ -15,7 +15,7 @@ $folderDesc = "";
 $file_tmp_name = $_FILES["file"]["tmp_name"];
 
 // Get the client Google credentials
-$credentials = $_SESSION["credentials"];
+$credentials = $_COOKIE["credentials"];
 
 // Get your app info from JSON downloaded from google dev console
 $json = json_decode(file_get_contents("./conf/GoogleClientId.json"), true);
