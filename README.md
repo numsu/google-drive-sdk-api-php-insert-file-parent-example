@@ -9,5 +9,5 @@ Small and very simple well commented example of a server-side PHP application wh
 4. Go to APIs & Auth / Credentials and create a new OAuth 2.0 Client ID.
 5. Set your origins to localhost:yourporthere (or your domain)
 6. Set your Redirect URI to localhost:yourporthere/fileUpload.php (or your domain)
-7. Download the information in a JSON (press the button) and put the file in conf/ folder
+7. Download the information in a JSON (press the button), and place it like google-drive-sdk-api-php-insert-file-parent-example/conf/googleClientId.json
 8. Comment, star and ask questions! And best of all, learn.
